@@ -14,6 +14,6 @@ main = defaultMain
   where
     toValue = env (BS.readFile "inputs/laureate.json") $ \contents ->
         bgroup "ToValue"
-            [ bench "Aeson" $ nf (Aeson.eitherDecodeStrict :: BS.ByteString -> Either String Aeson.Value) contents
-            , bench "Saison" $ nf (Saison.toEitherValue (fmap show) . Saison.tokens :: BS.ByteString -> Either String Aeson.Value) contents
+            [ bench "Aeson"  $ nf (Aeson.eitherDecodeStrict  :: BS.ByteString -> Either String Aeson.Value) contents
+            , bench "Saison" $ nf (Saison.eitherDecodeStrict :: BS.ByteString -> Either String Aeson.Value) contents
             ]
