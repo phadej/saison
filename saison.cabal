@@ -1,21 +1,22 @@
-cabal-version: 2.4
-name:          saison
-version:       0.1
-synopsis:      Stream Aeson, fruity, spicy, well carbonated
+cabal-version:      2.4
+name:               saison
+version:            0.1
+synopsis:           Stream Aeson, fruity, spicy, well carbonated
 description:
   Saison is a JSON library. It represents JSON document as a well-formed
   token stream.  This way most of grammatical structure is still preserved: you
   can decide what to do with duplicate keys per decoded type etc.  Potentially
   faster when parsing sparsely, i.e. omitting a lot of data.
 
-category:      Text, Web, JSON
-homepage:      https://github.com/phadej/saison
-bug-reports:   https://github.com/phadej/saison/issues
-copyright:     2017-2019 Oleg Grenrus
-maintainer:    Oleg Grenrus <oleg.grenrus@iki.fi>
-author:        Oleg Grenrus <oleg.grenrus@iki.fi>
-license:       BSD-3-Clause
-license-file:  LICENSE
+category:           Text, Web, JSON
+homepage:           https://github.com/phadej/saison
+bug-reports:        https://github.com/phadej/saison/issues
+copyright:          2017-2019 Oleg Grenrus
+maintainer:         Oleg Grenrus <oleg.grenrus@iki.fi>
+author:             Oleg Grenrus <oleg.grenrus@iki.fi>
+license:            BSD-3-Clause
+license-file:       LICENSE
+extra-source-files: inputs/laureate.json
 tested-with:
   GHC ==8.6.5 || ==8.4.4 || ==8.2.2 || ==8.0.2 || ==7.10.3 || ==7.8.4
 
