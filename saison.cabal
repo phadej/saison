@@ -29,23 +29,27 @@ library
   hs-source-dirs:   src
   exposed-modules:
     Saison
+    Saison.Decoding.Parser
     Saison.Decoding.Tokens
     Saison.Decoding.Value
-    Saison.Decoding.Parser
 
+  -- GHC boot dependencies
   build-depends:
-    , aeson
-    , attoparsec
-    , base                  >=4.7 && <4.13
-    , bytestring
-    , deepseq
-    , scientific
-    , text
-    , unordered-containers
-    , vector
+    , base        >=4.7      && <4.13
+    , bytestring  ^>=0.10.4.0
+    , deepseq     ^>=1.3.0.2 || ^>=1.4.1.1
+    , text        ^>=1.2.3.0
+
+  -- other dependencies
+  build-depends:
+    , aeson                 ^>=1.4.4.0
+    , attoparsec            ^>=0.13.2.2
+    , scientific            ^>=0.3.6.2
+    , unordered-containers  ^>=0.2.9.0
+    , vector                ^>=0.12.0.3
 
   if !impl(ghc >=7.10)
-    build-depends: void ^>=0.7.2
+    build-depends: void ^>=0.7.3
 
   other-extensions:
     BangPatterns
@@ -56,17 +60,22 @@ test-suite tests
   type:             exitcode-stdio-1.0
   main-is:          Tests.hs
   hs-source-dirs:   test
+
+  -- library dependencies
   build-depends:
     , aeson
     , base
     , bytestring
-    , integer-logarithms
-    , QuickCheck
-    , quickcheck-instances
     , saison
-    , tasty
-    , tasty-hunit
-    , tasty-quickcheck
+
+  -- other dependencies
+  build-depends:
+    , integer-logarithms    ^>=1.0.3
+    , QuickCheck            ^>=2.13.2
+    , quickcheck-instances  ^>=0.3.22
+    , tasty                 ^>=1.2.3
+    , tasty-hunit           ^>=0.10.0.2
+    , tasty-quickcheck      ^>=0.10.1
 
 benchmark bench-laureates
   default-language: Haskell2010
@@ -74,11 +83,14 @@ benchmark bench-laureates
   main-is:          Laureates.hs
   hs-source-dirs:   bench
   ghc-options:      -Wall -rtsopts
+
+  -- library dependencies
   build-depends:
     , aeson
     , base
-    , base-compat
     , bytestring
-    , criterion
     , saison
     , vector
+
+  -- other dependencies
+  build-depends:    criterion ^>=1.5.5.0
