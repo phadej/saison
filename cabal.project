@@ -1,0 +1,6 @@
+packages: .
+tests: true
+benchmarks: true
+
+package saison
+  ghc-options: -Wall
