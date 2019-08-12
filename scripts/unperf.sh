@@ -12,7 +12,7 @@ echo 1 > /sys/devices/system/cpu/cpu3/online
 # 3. Set scaling_governor to ‘performance’
 for i in 0 1 2 3
 do
-  echo powersafe > /sys/devices/system/cpu/cpu$i/cpufreq/scaling_governor
+  echo powersafe > /sys/devices/system/cpu/cpu$i/cpufreq/scaling_governor || true
 done
 
 # 4. Set cpu affinity

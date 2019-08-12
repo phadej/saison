@@ -18,7 +18,7 @@ import qualified Data.ByteString      as BS
 import qualified Data.ByteString.Lazy as BSL
 import qualified Saison
 
-import Saison.Decoding.Examples (countSomeValues)
+import Saison.Decoding.Examples (Laureate, Laureates, countSomeValues)
 
 main :: IO ()
 main = defaultMain $ testGroup "Tests"
@@ -51,6 +51,12 @@ examples = testGroup "Examples"
         let m = countSomeValues y
         assertEqual "aeson" n 910
         assertEqual ("saison: " ++ show y) m 910
+
+    , testCase "parse laureates" $ do
+        contents <- BS.readFile "inputs/laureate.json"
+        case Aeson.eitherDecodeStrict contents of
+            Left err -> assertFailure err
+            Right x -> assertEqual "Laureates" x (x :: Laureates Laureate)
     ]
 
 -------------------------------------------------------------------------------

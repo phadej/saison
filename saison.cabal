@@ -32,6 +32,7 @@ library
     Saison.Decoding.Class
     Saison.Decoding.Examples
     Saison.Decoding.Parser
+    Saison.Decoding.Record
     Saison.Decoding.Result
     Saison.Decoding.Tokens
     Saison.Decoding.Value
