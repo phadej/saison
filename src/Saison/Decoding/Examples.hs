@@ -108,6 +108,10 @@ instance FromTokens a => FromTokens (Laureates a) where
 -------------------------------------------------------------------------------
 
 -- | Almost complete information about a laureate. We skip @"prizes"@ information.
+--
+-- Look at the implementaton of 'FromJSON' and 'FromTokens' instances,
+-- they don't look that much different.
+--
 data Laureate = Laureate
     { lBorn            :: !Text -- change to Day
     , lBornCity        :: !(Maybe Text)
@@ -132,19 +136,30 @@ instance NFData Laureate where
 
 instance Aeson.FromJSON Laureate where
     parseJSON = Aeson.withObject "Laureate" $ \obj -> Laureate
-        <$> obj Aeson..: "born"
+        <$> obj Aeson..:  "born"
         <*> obj Aeson..:? "bornCity"
         <*> obj Aeson..:? "bornCountry"
         <*> obj Aeson..:? "bornCountryCode"
-        <*> obj Aeson..: "died"
+        <*> obj Aeson..:  "died"
         <*> obj Aeson..:? "diedCity"
         <*> obj Aeson..:? "diedCountry"
         <*> obj Aeson..:? "diedCountryCode"
         <*> obj Aeson..:? "firstname"
         <*> obj Aeson..:? "surname"
-        <*> obj Aeson..: "id"
-        <*> obj Aeson..: "gender"
+        <*> obj Aeson..:  "id"
+        <*> obj Aeson..:  "gender"
 
--- | * TODO
 instance FromTokens Laureate where
-    fromTokens = error "no-implemented"
+    fromTokens = runRecordParser $ pure Laureate
+        <.:>  "born"
+        <.:?> "bornCity"
+        <.:?> "bornCountry"
+        <.:?> "bornCountryCode"
+        <.:>  "died"
+        <.:?> "diedCity"
+        <.:?> "diedCountry"
+        <.:?> "diedCountryCode"
+        <.:?> "firstname"
+        <.:?> "surname"
+        <.:>  "id"
+        <.:>  "gender"
