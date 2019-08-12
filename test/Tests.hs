@@ -1,9 +1,10 @@
+{-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Main (main) where
 
 import Math.NumberTheory.Logarithms (intLog2)
 import Test.QuickCheck              (Arbitrary (..), frequency, liftArbitrary, sized, (===))
-import Test.Tasty                   (defaultMain, testGroup)
+import Test.Tasty                   (TestTree, defaultMain, testGroup)
 import Test.Tasty.HUnit             (assertEqual, assertFailure, testCase)
 import Test.Tasty.QuickCheck        (testProperty)
 
@@ -22,10 +23,19 @@ main = defaultMain $ testGroup "Tests"
             Right v -> case Saison.eitherDecodeStrict contents of
                 Left err -> assertFailure err
                 Right u  -> assertEqual "Laureates" v (u :: Aeson.Value)
+    , cornercases
     , testProperty "toValue . fromValue = id" $ \v ->
         let rhs = Saison.toValue (Saison.fromValue v)
             lhs = v
         in lhs === rhs
+    ]
+
+cornercases :: TestTree
+cornercases = testGroup "cornercases"
+    [ testCase "y_array_heterogenous" $
+          case Saison.eitherDecodeStrict "[null, 1, \"1\", {}]" :: Either String Aeson.Value of
+              Right _  -> return ()
+              Left err -> assertFailure err
     ]
 
 instance Arbitrary Aeson.Value where
