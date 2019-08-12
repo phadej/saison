@@ -19,12 +19,13 @@ import Saison.Decoding.Tokens
 -- The rest of input is in @'Maybe' 'ByteString'@. Errors are simple textual errors atm.
 --
 -- * TODO: try with stack of parsers, and not making new continuations. Will it be faster?
+-- * TODO: make an 'Error' data type.
 --
 tokens :: ByteString -> Tokens ByteString String
 tokens bs0 = goT bs0 id where
     goT :: Parser Tokens k
     goT bs' k = case uncons bs of
-        Nothing -> TkErr "Unexpected end-of-input, expecting JSON value"
+        Nothing -> tkErr "Unexpected end-of-input, expecting JSON value"
         Just (!w, !bs1) -> tokenCase w bs1 bs k
       where
         bs = skipSpace bs'
@@ -39,13 +40,13 @@ tokens bs0 = goT bs0 id where
     tokenCase 91  {- [ -} bs _   k = TkArrayOpen (goA bs k)
     tokenCase 34  {- " -} bs _   k = case Atto.parse jstring_ bs of
         Atto.Done bs1 t   -> TkText t (k bs1)
-        Atto.Fail _ _ err -> TkErr $ "Error parsing text literal: " ++ err
-        Atto.Partial {}   -> TkErr "Unexpected end-of-input while parsing text literal"
+        Atto.Fail _ _ err -> tkErr $ "Error parsing text literal: " ++ err
+        Atto.Partial {}   -> tkErr "Unexpected end-of-input while parsing text literal"
     tokenCase w           _  wbs k
         | 48 <= w && w <= 75 || w == 45 = case attoParse scientific wbs of
             Atto.Done bs1   s -> TkNumber s (k bs1)
-            Atto.Fail _ _ err -> TkErr $ "Error parsing number literal " ++ showBeginning wbs ++ ": " ++ err
-            Atto.Partial {}   -> TkErr "Unexpected end-of-input while parsing number literal"
+            Atto.Fail _ _ err -> tkErr $ "Error parsing number literal " ++ showBeginning wbs ++ ": " ++ err
+            Atto.Partial {}   -> tkErr "Unexpected end-of-input while parsing number literal"
     tokenCase 110 {- n -} bs _   k
         | Just bs1 <- stripPrefix "ull" 3 bs = TkLit LitNull (k bs1)
     tokenCase 116 {- t -} bs _   k
@@ -53,12 +54,12 @@ tokens bs0 = goT bs0 id where
     tokenCase 102 {- f -} bs _   k
         | Just bs1 <- stripPrefix "alse" 4 bs = TkLit LitFalse (k bs1)
 
-    tokenCase w           bs _   _ = TkErr $ "Unexpected " ++ show (BS.cons w (BS.take 29 bs)) ++ ", expecting JSON value"
+    tokenCase w           bs _   _ = tkErr $ "Unexpected " ++ show (BS.cons w (BS.take 29 bs)) ++ ", expecting JSON value"
 
     -- Array
     goA :: Parser TkArray k
     goA bs' k = case BS.uncons bs of
-        Nothing -> TkArrayErr "Unexpected end-of-input, expecting JSON value or ]"
+        Nothing         -> tkErrEOF "JSON value or ]"
         Just (93, !bs1) -> TkArrayEnd (k bs1)
         Just (w,  !bs1) -> TkItem $ tokenCase w bs1 bs $ \bs2 -> goA1 bs2 k
       where
@@ -66,10 +67,10 @@ tokens bs0 = goT bs0 id where
 
     goA1 :: Parser TkArray k
     goA1 bs' k = case BS.uncons bs of
-        Nothing -> TkArrayErr "Unexpected end-of-input, expecting , or ]"
+        Nothing         -> tkErrEOF ", or ]"
         Just (93, !bs1) -> TkArrayEnd (k bs1)
         Just (44, !bs1) -> TkItem $ goT bs1 $ \bs2 -> goA1 bs2 k
-        _               -> TkArrayErr $ "Unexpected " ++ showBeginning bs ++ ", expecting , or ]"
+        _               -> tkErrBS bs ", or ]"
       where
         bs = skipSpace bs'
 
@@ -77,29 +78,29 @@ tokens bs0 = goT bs0 id where
 
     goR :: Parser TkRecord k
     goR bs k = case uncons bs of
-        Nothing -> TkRecordErr "Unexpected end-of-input, expecting record key or }"
+        Nothing          -> tkErrEOF "record key literal or }"
         Just (34,  !bs1) -> goRK bs1 k           -- "
         Just (125, !bs1) -> TkRecordEnd (k bs1)  -- }
-        Just _           -> TkRecordErr $ "Unexpected " ++ showBeginning bs ++ ", expecting key literal or }"
+        Just _           -> tkErrBS bs "record key literal or }"
 
     goR1 :: Parser TkRecord k
     goR1 bs k = case uncons bs of
-        Nothing -> TkRecordErr "Unexpected end-of-input, expecting , or }"
+        Nothing -> tkErr "Unexpected end-of-input, expecting , or }"
         Just (44, !bs1)  -> case uncons bs1 of
-            Nothing         -> TkRecordErr "Unexpected end-of-input, expecting key literal"
+            Nothing         -> tkErrEOF "key literal"
             Just (34, !bs2) -> goRK bs2 k
-            Just _          -> TkRecordErr $ "Unexpected " ++ showBeginning bs ++ ", expecting key literal"
+            Just _          -> tkErrBS bs "key literal"
         Just (125, !bs1) -> TkRecordEnd (k bs1)
-        _                -> TkRecordErr $ "Unexpected " ++ showBeginning bs ++ ", expecting , or }"
+        _                -> tkErr $ "Unexpected " ++ showBeginning bs ++ ", expecting , or }"
 
     goRK :: Parser TkRecord k
     goRK bs1 k = case Atto.parse jstring_ bs1 of
         Atto.Done bs2 t   -> case uncons bs2 of
-            Nothing         -> TkRecordErr "Unexpected end-of-input, expecting :"
+            Nothing         -> tkErrEOF ":"
             Just (58, !bs3) -> TkPair t $ goT bs3 $ \bs4 -> goR1 bs4 k
-            Just _          -> TkRecordErr $ "Unexpected " ++ showBeginning bs2 ++ ", expecting :"
-        Atto.Fail _ _ err -> TkRecordErr $ "Error parsing key literal:" ++ err
-        Atto.Partial {}   -> TkRecordErr "Unexpected end-of-input while parsing key literal"
+            Just _          -> tkErrBS bs2 ":"
+        Atto.Fail _ _ err -> tkErr $ "Error parsing key literal:" ++ err
+        Atto.Partial {}   -> tkErr "Unexpected end-of-input while parsing key literal"
 
     stripPrefix :: ByteString -> Int -> ByteString -> Maybe ByteString
     stripPrefix pfx n bs | BS.isPrefixOf pfx bs = Just (BS.Unsafe.unsafeDrop n bs)
@@ -129,3 +130,11 @@ attoParse p bs = case Atto.parse p bs of
     Atto.Partial k -> k BS.empty
     r              -> r
 {-# INLINE attoParse #-}
+
+tkErrEOF :: AsError t =>String ->  t k String
+tkErrEOF expected = tkErr $
+    "Unexpected end-of-input, expecting " ++ expected
+
+tkErrBS :: AsError t => BS.ByteString -> String ->  t k String
+tkErrBS bs expected = tkErr $
+    "Unexpected " ++ showBeginning bs ++ ", expecting " ++ expected

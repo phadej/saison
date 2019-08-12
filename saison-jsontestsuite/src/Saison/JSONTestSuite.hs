@@ -1,5 +1,9 @@
 module Saison.JSONTestSuite (jsonTestSuite) where
 
+import Prelude ()
+import Prelude.Compat
+
+import Control.Monad    (mplus)
 import Data.Aeson       (Value)
 import Data.ByteString  (ByteString)
 import Data.Either      (isLeft, isRight)
@@ -14,6 +18,7 @@ import Test.Tasty.HUnit (assertBool, assertFailure, testCase)
 import qualified Data.ByteString as BS
 import qualified Data.Set        as Set
 
+
 jsonTestSuite :: (ByteString -> Either String Value) -> IO ()
 jsonTestSuite decode = do
     tree <- jsonTestSuiteTree decode
@@ -26,8 +31,11 @@ jsonTestSuiteTree decode = do
     let suitePath = "JSONTestSuite"
     let suites = ["test_parsing", "test_transform"]
     testPaths <- fmap (sort . concat) $ for suites $ \suite -> do
-      let dir = suitePath </> suite
-      entries <- getDirectoryContents dir
+      let dir1 = suitePath </> suite
+      -- we can run the tests from top-level of the project too
+      let dir2 = "saison-jsontestsuite" </> dir1
+      let contents dir = (,) dir <$> getDirectoryContents dir
+      (dir, entries) <- contents dir1 `mplus` contents dir2
       return
           [ (name, dir </> name)
           | name <- entries

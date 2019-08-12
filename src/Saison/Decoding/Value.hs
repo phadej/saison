@@ -1,9 +1,11 @@
 {-# LANGUAGE BangPatterns #-}
 -- | Convertion to and from @aeson@ 'A.Value'.
 module Saison.Decoding.Value (
+    toResultValue,
     toEitherValue,
     toValue,
     fromValue,
+    skipValue,
     ) where
 
 import Data.Text (Text)
@@ -14,6 +16,7 @@ import qualified Data.HashMap.Strict as HM
 import qualified Data.Vector         as V
 
 import Saison.Decoding.Tokens
+import Saison.Decoding.Result
 
 -- | Convert 'Tokens' to @aeson's@ 'A.Value'.
 --
@@ -33,12 +36,17 @@ fromValue = go () where
     go k (A.Array xs)   = TkArrayOpen (V.foldr (\v ys -> TkItem (go ys v)) (TkArrayEnd k) xs)
     go k (A.Object xs)  = TkRecordOpen (HM.foldrWithKey (\i v ys -> TkPair i (go ys v)) (TkRecordEnd k) xs)
 
--- | Convert to 'Value', from 'Tokens' potentially containing an error.
--- Also option to check the left over.
 toEitherValue
     :: Tokens k e             -- ^ tokens
     -> Either e (A.Value, k)  -- ^ either token error or value and leftover.
-toEitherValue t0 = go t0 Left $ \v k -> Right (v, k) where
+toEitherValue t = unResult (toResultValue t) Left $ \v k -> Right (v, k)
+
+-- | Convert to 'Value', from 'Tokens' potentially containing an error.
+-- Also option to check the left over.
+toResultValue
+    :: Tokens k e           -- ^ tokens
+    -> Result e k A.Value  -- ^ either token error or value and leftover.
+toResultValue t0 = Result (go t0) where
     go :: Tokens k e -> (e -> r) -> (A.Value -> k -> r) -> r
     go (TkLit LitNull k)  _ f = f A.Null k
     go (TkLit LitTrue k)  _ f = f (A.Bool True) k
@@ -67,5 +75,34 @@ toEitherValue t0 = go t0 Left $ \v k -> Right (v, k) where
     goR !acc (TkPair t toks) g f = go toks g $ \v k -> goR (acc . ((t, v) :)) k g f
     goR !acc (TkRecordEnd k) _ f = f (acc []) k
     goR !_   (TkRecordErr e) g _ = g e
+
+-- | Skip value. Useful sometimes.
+skipValue
+    :: Tokens k e     -- ^ tokens
+    -> Result e k ()
+skipValue t0 = Result $ \g f -> go t0 g $ \k -> f () k where
+    go :: Tokens k e -> (e -> r) -> (k -> r) -> r
+    go (TkLit _ k)        _ f = f k
+    go (TkText _ k)       _ f = f k
+    go (TkNumber _ k)     _ f = f k
+    go (TkArrayOpen arr)  g f = goA arr g f
+    go (TkRecordOpen rec) g f = goR rec g f
+    go (TkErr e)          g _ = g e
+
+    goA :: TkArray k e                   -- array tokens
+        -> (e -> r)                      -- error continuation
+        -> (k -> r)  -- success continuation
+        -> r
+    goA (TkItem toks)  g f = go toks g $ \k -> goA k g f
+    goA (TkArrayEnd k) _ f = f k
+    goA (TkArrayErr e) g _ = g e
+
+    goR :: TkRecord k e
+        -> (e -> r)
+        -> (k -> r)
+        -> r
+    goR (TkPair _ toks) g f = go toks g $ \k -> goR k g f
+    goR (TkRecordEnd k) _ f = f k
+    goR (TkRecordErr e) g _ = g e
 
 
