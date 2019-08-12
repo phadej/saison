@@ -1,4 +1,6 @@
-packages: .
+packages: saison.cabal
+packages: saison-jsontestsuite/
+
 tests: true
 benchmarks: true
 

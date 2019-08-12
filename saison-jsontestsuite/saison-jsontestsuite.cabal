@@ -1,0 +1,63 @@
+cabal-version:      2.4
+name:               saison-jsontestsuite
+version:            0.1
+synopsis:           Stream Aeson, fruity, spicy, well carbonated
+description:
+  JSONTestSuite (https://github.com/nst/JSONTestSuite) for saison
+
+category:           Text, Web, JSON
+homepage:           https://github.com/phadej/saison
+bug-reports:        https://github.com/phadej/saison/issues
+copyright:          2017-2019 Oleg Grenrus
+maintainer:         Oleg Grenrus <oleg.grenrus@iki.fi>
+author:             Oleg Grenrus <oleg.grenrus@iki.fi>
+license:            BSD-3-Clause
+license-file:       LICENSE
+extra-source-files:
+  JSONTestSuite/test_parsing/*.json
+  JSONTestSuite/test_transform/*.json
+
+tested-with:
+  GHC ==8.6.5 || ==8.4.4 || ==8.2.2 || ==8.0.2 || ==7.10.3 || ==7.8.4
+
+source-repository head
+  type:     git
+  location: https://github.com/phadej/saison.git
+
+library
+  default-language: Haskell2010
+  hs-source-dirs:   src
+  exposed-modules:  Saison.JSONTestSuite
+
+  -- GHC boot dependencies
+  build-depends:
+    , aeson
+    , base         >=4.7 && <5
+    , bytestring
+    , containers
+    , deepseq
+    , directory
+    , filepath
+    , tasty
+    , tasty-hunit
+    , text
+
+test-suite saison-jsontestsuite
+  default-language: Haskell2010
+  type:             exitcode-stdio-1.0
+  main-is:          TestSaison.hs
+  hs-source-dirs:   test
+  build-depends:
+    , base
+    , saison
+    , saison-jsontestsuite
+
+test-suite aeson-jsontestsuite
+  default-language: Haskell2010
+  type:             exitcode-stdio-1.0
+  main-is:          TestAeson.hs
+  hs-source-dirs:   test
+  build-depends:
+    , aeson
+    , base
+    , saison-jsontestsuite
