@@ -19,9 +19,9 @@ main = defaultMain $ testGroup "Tests"
         contents <- BS.readFile "inputs/laureate.json"
         case Aeson.eitherDecodeStrict contents of
             Left err -> assertFailure err
-            Right v -> case Saison.toEitherValue (fmap show) (Saison.tokens contents) of
+            Right v -> case Saison.eitherDecodeStrict contents of
                 Left err -> assertFailure err
-                Right u  -> assertEqual "Laureates" v u
+                Right u  -> assertEqual "Laureates" v (u :: Aeson.Value)
     , testProperty "toValue . fromValue = id" $ \v ->
         let rhs = Saison.toValue (Saison.fromValue v)
             lhs = v
