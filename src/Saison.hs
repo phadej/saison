@@ -45,17 +45,17 @@ module Saison (
     fromValue,
     -- * Parsing
     eitherDecodeStrict,
-    toEitherValue,
-    tokens,
+    FromTokens (..),
+    skipValue,
     ) where
 
-import Data.Aeson      (Value)
 import Data.ByteString (ByteString)
 
-import qualified Data.ByteString       as BS
-import qualified Data.ByteString.Char8 as BS8
+import qualified Data.ByteString as BS
 
+import Saison.Decoding.Class
 import Saison.Decoding.Parser
+import Saison.Decoding.Result
 import Saison.Decoding.Tokens
 import Saison.Decoding.Value
 
@@ -63,17 +63,12 @@ import Saison.Decoding.Value
 -- Decoding
 -------------------------------------------------------------------------------
 
-class FromTokens a where
-    fromTokens :: Tokens k String -> Either String (a, k)
-
-instance FromTokens Value where
-    fromTokens = toEitherValue
-
 -- |
 --
 -- * TODO: Make 'FromTokens' type class
 eitherDecodeStrict :: FromTokens a => ByteString -> Either String a
-eitherDecodeStrict bs = case fromTokens (tokens bs) of
-    Left err                                 -> Left err
-    Right (x, bs') | BS.null (skipSpace bs') -> Right x
-                   | otherwise               -> Left $ "Unexpected data after the JSON value: " ++ BS8.unpack (BS.take 30 bs)
+eitherDecodeStrict bs = unResult (fromTokens (tokens bs)) Left $ \x bs' ->
+    let bs'' = skipSpace bs'
+    in if BS.null bs''
+       then Right x
+       else Left $ "Unexpected data after the JSON value: " ++ showBeginning bs''
