@@ -9,13 +9,15 @@ import qualified Saison
 
 import Saison.Decoding.Examples (Laureate, Laureates, countSomeValues)
 
-type V = Either String Aeson.Value
-type L = Either String (Laureates Laureate)
+type V  = Either String Aeson.Value
+type LV = Either String (Laureates Aeson.Value)
+type L  = Either String (Laureates Laureate)
 
 main :: IO ()
 main = defaultMain
     [ value
     , count
+    , listvalue
     , parse
     ]
   where
@@ -41,6 +43,18 @@ main = defaultMain
             , bench "Aeson Lazy"  $ whnf (countSomeValues . Aeson.eitherDecode       ) lbs
             , bench "Aeson' Lazy" $ whnf (countSomeValues . Aeson.eitherDecode'      ) lbs
             , bench "Saison"      $ whnf (countSomeValues . Saison.eitherDecodeStrict) bs
+            ]
+
+    listvalue :: Benchmark
+    listvalue =
+        env (BS.readFile "inputs/laureate.json") $ \bs ->
+        env (LBS.readFile "inputs/laureate.json") $ \lbs ->
+        bgroup "ListValue"
+            [ bench "Aeson"       $ nf (Aeson.eitherDecodeStrict  :: BS.ByteString  -> LV) bs
+            , bench "Aeson'"      $ nf (Aeson.eitherDecodeStrict' :: BS.ByteString  -> LV) bs
+            , bench "Aeson Lazy"  $ nf (Aeson.eitherDecode        :: LBS.ByteString -> LV) lbs
+            , bench "Aeson' Lazy" $ nf (Aeson.eitherDecode'       :: LBS.ByteString -> LV) lbs
+            , bench "Saison"      $ nf (Saison.eitherDecodeStrict :: BS.ByteString  -> LV) bs
             ]
 
     parse :: Benchmark

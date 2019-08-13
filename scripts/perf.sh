@@ -6,6 +6,7 @@ set -ex
 echo 1 > /sys/devices/system/cpu/intel_pstate/no_turbo
 
 # 3. Set scaling_governor to ‘performance’
+# https://wiki.archlinux.org/index.php/CPU_frequency_scaling#Scaling_governors
 for i in 0 1 2 3
 do
   echo performance > /sys/devices/system/cpu/cpu$i/cpufreq/scaling_governor || true
