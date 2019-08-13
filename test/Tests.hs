@@ -3,6 +3,9 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Main (main) where
 
+import Prelude ()
+import Prelude.Compat
+
 import Data.Text                    (Text)
 import Data.Typeable                (Typeable, typeOf)
 import Math.NumberTheory.Logarithms (intLog2)
@@ -13,10 +16,11 @@ import Test.Tasty.QuickCheck        (testProperty)
 
 import Test.QuickCheck.Instances ()
 
-import qualified Data.Aeson           as Aeson
-import qualified Data.ByteString      as BS
-import qualified Data.ByteString.Lazy as BSL
+import qualified Data.Aeson             as Aeson
+import qualified Data.ByteString        as BS
+import qualified Data.ByteString.Lazy   as BSL
 import qualified Saison
+import qualified Saison.Decoding.Result as Saison
 
 import Saison.Decoding.Examples (Laureate, Laureates, countSomeValues)
 
@@ -26,16 +30,48 @@ main = defaultMain $ testGroup "Tests"
         contents <- BS.readFile "inputs/laureate.json"
         case Aeson.eitherDecodeStrict contents of
             Left err -> assertFailure err
-            Right v -> case Saison.eitherDecodeStrict contents of
+            Right v  -> case Saison.eitherDecodeStrict contents of
                 Left err -> assertFailure err
                 Right u  -> assertEqual "Laureates" v (u :: Aeson.Value)
     , examples
+    , record
     , cornercases
     , agreesWithAeson
     , testProperty "toValue . fromValue = id" $ \v ->
         let rhs = Saison.toValue (Saison.fromValue v)
             lhs = v
         in lhs === rhs
+    ]
+
+-------------------------------------------------------------------------------
+-- RecordParser
+-------------------------------------------------------------------------------
+
+data R = R Text Text
+  deriving (Eq, Show)
+
+instance Saison.FromTokens R where
+    fromTokens = Saison.runRecordParser $ pure R
+        Saison.<.:> "A"
+        Saison.<.:> "B"
+
+record :: TestTree
+record = testGroup "Record"
+    [ testCase "AB" $ do
+        let mk :: Text -> Text -> Text -> Text -> Saison.Tokens () String
+            mk k x l y = Saison.TkRecordOpen
+                $ Saison.TkPair k $ Saison.TkText x
+                $ Saison.TkPair l $ Saison.TkText y
+                $ Saison.TkPair "C" $ Saison.TkText "Z"
+                $ Saison.TkRecordEnd ()
+
+        Saison.unResult (Saison.fromTokens (mk "A" "X" "B" "Y"))
+            assertFailure
+            $ \r () -> assertEqual "A B" r (R "X" "Y")
+
+        Saison.unResult (Saison.fromTokens (mk "B" "Y" "A" "X"))
+            assertFailure
+            $ \r () -> assertEqual "B A" r (R "X" "Y")
     ]
 
 -------------------------------------------------------------------------------
@@ -56,7 +92,9 @@ examples = testGroup "Examples"
         contents <- BS.readFile "inputs/laureate.json"
         case Aeson.eitherDecodeStrict contents of
             Left err -> assertFailure err
-            Right x -> assertEqual "Laureates" x (x :: Laureates Laureate)
+            Right x  -> case Saison.eitherDecodeStrict contents of
+                Left err -> assertFailure err
+                Right y  -> assertEqual "Laureates" x (y :: Laureates Laureate)
     ]
 
 -------------------------------------------------------------------------------

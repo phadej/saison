@@ -74,6 +74,7 @@ test-suite saison-tests
   build-depends:
     , aeson
     , base
+    , base-compat
     , bytestring
     , saison
     , text
