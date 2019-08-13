@@ -6,11 +6,14 @@ module Saison.Decoding.Examples (
     countSomeValues,
     -- * Laureates
     Laureates (..),
+    Laureate (..),
     ) where
 
 import Prelude ()
 import Prelude.Compat
+
 import Control.DeepSeq (NFData (..))
+import Data.Text       (Text)
 
 import qualified Data.Aeson as Aeson
 
@@ -71,7 +74,10 @@ countSomeValues = either (const (-1)) (length . unLaureates)
 -- This type parses the outer layer.
 --
 newtype Laureates a = Laureates { unLaureates :: [a] }
-  deriving (Show)
+  deriving (Eq, Show)
+
+instance NFData a => NFData (Laureates a) where
+    rnf (Laureates xs) = rnf xs
 
 instance Aeson.FromJSON a => Aeson.FromJSON (Laureates a) where
     parseJSON = Aeson.withObject "Laureates" $ \obj ->
@@ -96,3 +102,64 @@ instance FromTokens a => FromTokens (Laureates a) where
         go (TkRecordEnd _) = failResult "Expecting record with exactly one key"
     fromTokens (TkErr e)   = failResult e
     fromTokens _           = failResult "Expecting Record, got ????"
+
+-------------------------------------------------------------------------------
+-- Laureate
+-------------------------------------------------------------------------------
+
+-- | Almost complete information about a laureate. We skip @"prizes"@ information.
+--
+-- Look at the implementaton of 'FromJSON' and 'FromTokens' instances,
+-- they don't look that much different.
+--
+data Laureate = Laureate
+    { lBorn            :: !Text -- change to Day
+    , lBornCity        :: !(Maybe Text)
+    , lBornCountry     :: !(Maybe Text)
+    , lBornCountryCode :: !(Maybe Text)
+    , lDead            :: !Text -- change to Day
+    , lDeadCity        :: !(Maybe Text)
+    , lDeadCountry     :: !(Maybe Text)
+    , lDeadCountryCode :: !(Maybe Text)
+    , lFirstName       :: !(Maybe Text)
+    , lSurname         :: !(Maybe Text)
+    , lId              :: !Text
+    , lGender          :: !Text
+    }
+  deriving (Eq, Show)
+
+instance NFData Laureate where
+    rnf (Laureate a b c d e f g h i j k l) =
+        rnf a `seq` rnf b `seq` rnf c `seq` rnf d `seq`
+        rnf e `seq` rnf f `seq` rnf g `seq` rnf h `seq`
+        rnf i `seq` rnf j `seq` rnf k `seq` rnf l
+
+instance Aeson.FromJSON Laureate where
+    parseJSON = Aeson.withObject "Laureate" $ \obj -> Laureate
+        <$> obj Aeson..:  "born"
+        <*> obj Aeson..:? "bornCity"
+        <*> obj Aeson..:? "bornCountry"
+        <*> obj Aeson..:? "bornCountryCode"
+        <*> obj Aeson..:  "died"
+        <*> obj Aeson..:? "diedCity"
+        <*> obj Aeson..:? "diedCountry"
+        <*> obj Aeson..:? "diedCountryCode"
+        <*> obj Aeson..:? "firstname"
+        <*> obj Aeson..:? "surname"
+        <*> obj Aeson..:  "id"
+        <*> obj Aeson..:  "gender"
+
+instance FromTokens Laureate where
+    fromTokens = runRecordParser $ pure Laureate
+        <.:>  "born"
+        <.:?> "bornCity"
+        <.:?> "bornCountry"
+        <.:?> "bornCountryCode"
+        <.:>  "died"
+        <.:?> "diedCity"
+        <.:?> "diedCountry"
+        <.:?> "diedCountryCode"
+        <.:?> "firstname"
+        <.:?> "surname"
+        <.:>  "id"
+        <.:>  "gender"

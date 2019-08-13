@@ -47,9 +47,21 @@ module Saison (
     eitherDecodeStrict,
     FromTokens (..),
     skipValue,
+    -- ** Record
+    RecordParser,
+    runRecordParser,
+    requiredField,
+    optionalField,
+    skippedField,
+    (<.:>),
+    (<.:?>),
     ) where
 
+import Prelude ()
+import Prelude.Compat
+
 import Data.ByteString (ByteString)
+import Data.Text (Text)
 
 import qualified Data.ByteString as BS
 
@@ -58,6 +70,7 @@ import Saison.Decoding.Parser
 import Saison.Decoding.Result
 import Saison.Decoding.Tokens
 import Saison.Decoding.Value
+import Saison.Decoding.Record
 
 -------------------------------------------------------------------------------
 -- Decoding
@@ -72,3 +85,12 @@ eitherDecodeStrict bs = unResult (fromTokens (tokens bs)) Left $ \x bs' ->
     in if BS.null bs''
        then Right x
        else Left $ "Unexpected data after the JSON value: " ++ showBeginning bs''
+
+-- | 'requiredField' using 'FromTokens' parser.
+(<.:>) :: FromTokens a => RecordParser (a -> b) -> Text -> RecordParser b
+p <.:> n = p <*> requiredField n fromTokens
+
+(<.:?>) :: FromTokens a => RecordParser (Maybe a -> b) -> Text -> RecordParser b
+p <.:?> n = p <*> optionalField n fromTokens
+
+infixl 4 <.:>, <.:?>

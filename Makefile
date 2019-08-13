@@ -1,4 +1,4 @@
-.PHONY: all build test test-all bench-laureates
+.PHONY: all build test test-all bench-laureates haddock
 
 build :
 	cabal build saison
@@ -17,3 +17,6 @@ test-all :
 bench-laureates :
 	cabal build bench-laureates
 	$$(cabal-plan list-bin bench-laureates) --csv bench-laureates.csv -o bench-laureates.html
+
+haddock :
+	cabal haddock --haddock-hyperlink-sources
