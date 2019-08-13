@@ -38,7 +38,7 @@ runRecordParser rp0 (TkRecordOpen rs) = go rp0 rs where
     go :: RecordParser a -> TkRecord k String -> Result String k a
     go _  (TkRecordErr e) = failResult e
     go rp (TkRecordEnd k) = end rp k
-    go rp (TkPair t toks) = Result $ \g f -> unResult (pair rp t toks) g $ \rp' k -> unResult (go rp' k) g f
+    go rp (TkPair t toks) = pair rp t toks >>>= go
 
     end :: RecordParser a -> k -> Result String k a
     end (Pure x)                     k = pureResult x k
@@ -50,24 +50,26 @@ runRecordParser rp0 (TkRecordOpen rs) = go rp0 rs where
     end (Ap _ (RequiredField t _))   _ = failResult $ "Field " ++ show t ++ " required"
 
     pair :: RecordParser a -> Text -> Tokens (TkRecord k String) String -> Result String (TkRecord k String) (RecordParser a)
-    pair x@(Pure _)                   _t toks =
+    pair x@(Pure _)                   _ toks
         -- strict
         -- failResult $ "Unknown field " ++ show t
-        x <$ skipValue toks
-    pair x@(Impure (PureField _))     _t toks =
-        x <$ skipValue toks
-    pair x@(Impure (OptionalField s p)) t toks
-        | s == t    = Result $ \g f -> unResult (p toks) g $ \z -> f (Impure (PureField (Just z)))
-        | otherwise = x <$ skipValue toks
-    pair x@(Impure (RequiredField s p)) t toks
-        | s == t    = Result $ \g f -> unResult (p toks) g $ \z -> f (Impure (PureField z))
-        | otherwise = x <$ skipValue toks
-    pair (Ap x (OptionalField s p))   t toks
-        | s == t = Result $ \g f -> unResult (p toks) g $ \z -> f (Ap x (PureField (Just z)))
+                     = x <$ skipValue toks
+
     pair (Ap x (RequiredField s p))   t toks
-        | s == t = Result $ \g f -> unResult (p toks) g $ \z -> f (Ap x (PureField z))
-    pair (Ap x f)                     t toks =
-        (`Ap` f) <$> pair x t toks
+        | s == t     = Ap x . PureField <$> p toks
+    pair (Ap x (OptionalField s p))   t toks
+        | s == t     = Ap x . PureField . Just <$> p toks
+    pair (Ap x f)                     t toks
+                     = (`Ap` f) <$> pair x t toks
+
+    pair (Impure (PureField x))       _ toks =
+        Pure x <$ skipValue toks
+    pair x@(Impure (OptionalField s p)) t toks
+        | s == t     = Impure . PureField . Just <$> p toks
+        | otherwise  = x <$ skipValue toks
+    pair x@(Impure (RequiredField s p)) t toks
+        | s == t     = Impure . PureField <$> p toks
+        | otherwise  = x <$ skipValue toks
 
 runRecordParser _  (TkErr e)         = failResult e
 runRecordParser _  _                 = failResult "Expecting Record, got ???"

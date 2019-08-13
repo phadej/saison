@@ -18,7 +18,6 @@ import Data.Text       (Text)
 import qualified Data.Aeson as Aeson
 
 import Saison
-import Saison.Decoding.Result
 
 -------------------------------------------------------------------------------
 -- SomeValue
@@ -90,18 +89,7 @@ instance Aeson.FromJSON a => Aeson.FromJSON (Laureates a) where
 --   Separate ways to interpret record: lenient and strict.
 --
 instance FromTokens a => FromTokens (Laureates a) where
-    fromTokens (TkRecordOpen toks0) = go toks0 where
-        go (TkPair t toks1)
-            | t == "laureates" =
-                Result $ \g f ->
-                unResult (fromTokens toks1) g $ \xs k -> case k of
-                    TkRecordEnd k' -> f (Laureates xs) k'
-                    _              -> g "Expecting record with exactly one key"
-            | otherwise        = failResult $ "Expecting laureates key, got " ++ show t
-        go (TkRecordErr e) = failResult e
-        go (TkRecordEnd _) = failResult "Expecting record with exactly one key"
-    fromTokens (TkErr e)   = failResult e
-    fromTokens _           = failResult "Expecting Record, got ????"
+    fromTokens = runRecordParser $ pure Laureates <.:> "laureates"
 
 -------------------------------------------------------------------------------
 -- Laureate
