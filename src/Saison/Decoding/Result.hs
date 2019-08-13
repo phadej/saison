@@ -17,3 +17,8 @@ pureResult x k = Result $ \_ f -> f x k
 
 failResult :: e -> Result e k a
 failResult e = Result $ \g _ -> g e
+
+(>>>=) :: Result e k a -> (a -> k -> Result e k' b) -> Result e k' b
+Result x >>>= y = Result $ \g f -> x g $ \a k -> unResult (y a k) g f
+
+infixl 1 >>>=
