@@ -52,6 +52,6 @@ main = defaultMain
             , bench "Aeson'"      $ nf (Aeson.eitherDecodeStrict' :: BS.ByteString  -> L) bs
             , bench "Aeson Lazy"  $ nf (Aeson.eitherDecode        :: LBS.ByteString -> L) lbs
             , bench "Aeson' Lazy" $ nf (Aeson.eitherDecode'       :: LBS.ByteString -> L) lbs
-            -- , bench "Saison"      $ nf (Saison.eitherDecodeStrict :: BS.ByteString  -> L) bs
+            , bench "Saison"      $ nf (Saison.eitherDecodeStrict :: BS.ByteString  -> L) bs
             ]
 

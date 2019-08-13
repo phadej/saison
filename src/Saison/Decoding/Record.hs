@@ -1,4 +1,5 @@
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE GADTs #-}
 module Saison.Decoding.Record (
     RecordParser,
     runRecordParser,
@@ -10,32 +11,77 @@ module Saison.Decoding.Record (
 import Prelude ()
 import Prelude.Compat
 
-import Data.Set  (Set)
 import Data.Text (Text)
-
-import qualified Data.Primitive.SmallArray as SA
 
 import Saison.Decoding.Result
 import Saison.Decoding.Tokens
+import Saison.Decoding.Value
 
--- TODO: implement me
-data RecordParser a = RecordParser
+data RecordParser a where
+    Pure   :: a                                      -> RecordParser a
+    Impure :: FieldParser a                          -> RecordParser a
+    Ap     :: RecordParser (b -> a) -> FieldParser b -> RecordParser a
 
 instance Functor RecordParser where
-    fmap f x = pure f <*> x
+    fmap f (Pure x)   = Pure (f x)
+    fmap f (Impure x) = Ap (Pure f) x
+    fmap f (Ap x y)   = Ap (fmap (f .) x) y
 
 instance Applicative RecordParser where
-    pure _ = error "pure @RecordParser" RecordParser
-    (<*>) = error "ap @RecordParser"
+    pure = Pure
+    f <*> Pure x   = Ap f (PureField x)
+    f <*> Impure x = Ap f x
+    f <*> Ap x y   = Ap ((.) <$> f <*> x) y
 
 runRecordParser :: RecordParser a -> Tokens k String -> Result String k a
-runRecordParser = error "implement me"
+runRecordParser rp0 (TkRecordOpen rs) = go rp0 rs where
+    go :: RecordParser a -> TkRecord k String -> Result String k a
+    go _  (TkRecordErr e) = failResult e
+    go rp (TkRecordEnd k) = end rp k
+    go rp (TkPair t toks) = Result $ \g f -> unResult (pair rp t toks) g $ \rp' k -> unResult (go rp' k) g f
+
+    end :: RecordParser a -> k -> Result String k a
+    end (Pure x)                     k = pureResult x k
+    end (Impure (PureField x))       k = pureResult x k
+    end (Impure (OptionalField _ _)) k = pureResult Nothing k
+    end (Impure (RequiredField t _)) _ = failResult $ "Field " ++ show t ++ " required"
+    end (Ap r (PureField x))         k = ($ x) <$> end r k
+    end (Ap r (OptionalField _ _))   k = ($ Nothing) <$> end r k
+    end (Ap _ (RequiredField t _))   _ = failResult $ "Field " ++ show t ++ " required"
+
+    pair :: RecordParser a -> Text -> Tokens (TkRecord k String) String -> Result String (TkRecord k String) (RecordParser a)
+    pair x@(Pure _)                   _t toks =
+        -- strict
+        -- failResult $ "Unknown field " ++ show t
+        x <$ skipValue toks
+    pair x@(Impure (PureField _))     _t toks =
+        x <$ skipValue toks
+    pair x@(Impure (OptionalField s p)) t toks
+        | s == t    = Result $ \g f -> unResult (p toks) g $ \z -> f (Impure (PureField (Just z)))
+        | otherwise = x <$ skipValue toks
+    pair x@(Impure (RequiredField s p)) t toks
+        | s == t    = Result $ \g f -> unResult (p toks) g $ \z -> f (Impure (PureField z))
+        | otherwise = x <$ skipValue toks
+    pair (Ap x (OptionalField s p))   t toks
+        | s == t = Result $ \g f -> unResult (p toks) g $ \z -> f (Ap x (PureField (Just z)))
+    pair (Ap x (RequiredField s p))   t toks
+        | s == t = Result $ \g f -> unResult (p toks) g $ \z -> f (Ap x (PureField z))
+    pair (Ap x f)                     t toks =
+        (`Ap` f) <$> pair x t toks
+
+runRecordParser _  (TkErr e)         = failResult e
+runRecordParser _  _                 = failResult "Expecting Record, got ???"
+
+data FieldParser a where
+    PureField     :: a                                                        -> FieldParser a
+    RequiredField :: Text -> (forall k. Tokens k String -> Result String k a) -> FieldParser a
+    OptionalField :: Text -> (forall k. Tokens k String -> Result String k a) -> FieldParser (Maybe a)
 
 requiredField :: Text -> (forall k. Tokens k String -> Result String k a) -> RecordParser a
-requiredField _n _p = undefined
+requiredField n p = Impure (RequiredField n p)
 
 optionalField :: Text -> (forall k. Tokens k String -> Result String k a) -> RecordParser (Maybe a)
-optionalField _n _p = undefined
+optionalField n p = Impure (OptionalField n p)
 
 skippedField :: Text -> RecordParser (a -> a)
-skippedField = undefined
+skippedField _ = Pure id

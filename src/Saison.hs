@@ -76,9 +76,7 @@ import Saison.Decoding.Record
 -- Decoding
 -------------------------------------------------------------------------------
 
--- |
---
--- * TODO: Make 'FromTokens' type class
+-- | Parse a value from strict 'ByteString'.
 eitherDecodeStrict :: FromTokens a => ByteString -> Either String a
 eitherDecodeStrict bs = unResult (fromTokens (tokens bs)) Left $ \x bs' ->
     let bs'' = skipSpace bs'
