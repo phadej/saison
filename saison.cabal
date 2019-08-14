@@ -16,7 +16,7 @@ maintainer:         Oleg Grenrus <oleg.grenrus@iki.fi>
 author:             Oleg Grenrus <oleg.grenrus@iki.fi>
 license:            BSD-3-Clause
 license-file:       LICENSE
-extra-source-files: inputs/laureate.json
+extra-source-files: inputs/laureate.json inputs/pulls.json
 tested-with:
   GHC ==8.6.5 || ==8.4.4 || ==8.2.2 || ==8.0.2 || ==7.10.3 || ==7.8.4
 
@@ -102,6 +102,27 @@ benchmark bench-laureates
     , bytestring
     , deepseq
     , saison
+    , vector
+
+  -- other dependencies
+  build-depends:    criterion ^>=1.5.5.0
+
+benchmark bench-pulls
+  default-language: Haskell2010
+  type:             exitcode-stdio-1.0
+  main-is:          Pulls.hs
+  hs-source-dirs:   bench
+  ghc-options:      -Wall -rtsopts
+
+  -- library dependencies
+  build-depends:
+    , aeson
+    , base
+    , base-compat
+    , bytestring
+    , deepseq
+    , saison
+    , text
     , vector
 
   -- other dependencies

@@ -2,5 +2,5 @@ dist/
 dist-newstyle/
 .ghc.environment.*
 
-bench-laureates.csv
-bench-laureates.html
+bench-*.csv
+bench-*.html
