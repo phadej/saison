@@ -4,11 +4,10 @@
 #
 # For more information, see https://github.com/haskell-CI/haskell-ci
 #
-# version: 0.3.20190804.2
+# version: 0.3.20190814.1
 #
 language: c
 dist: xenial
-sudo: required
 git:
   # whether to recursively clone submodules
   submodules: true
