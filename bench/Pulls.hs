@@ -1,17 +1,45 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Main (main) where
 
-import Criterion.Main (Benchmark, bench, bgroup, defaultMain, env, nf, whnf)
+import Prelude ()
+import Prelude.Compat
+
+import Control.DeepSeq (NFData (..))
+import Criterion.Main  (Benchmark, bench, bgroup, defaultMain, env, nf, whnf)
+import Data.Text       (Text)
 
 import qualified Data.Aeson           as Aeson
 import qualified Data.ByteString      as BS
 import qualified Data.ByteString.Lazy as LBS
 import qualified Saison
 
-import Saison.Decoding.Examples (Laureate, Laureates, countSomeValues)
+import Saison.Decoding.Examples (SomeValue)
 
-type V = Either String Aeson.Value
-type L = Either String (Laureates Aeson.Value)
-type X = Either String (Laureates Laureate)
+data Pull = Pull
+    { _pullNodeId :: !Text
+    , _pullTitle  :: !Text
+    }
+  deriving (Eq, Ord)
+
+instance NFData Pull where
+    rnf Pull {} = ()
+
+instance Aeson.FromJSON Pull where
+    parseJSON = Aeson.withObject "Pull" $ \obj -> Pull
+        <$> obj Aeson..: "node_id"
+        <*> obj Aeson..: "title"
+
+instance Saison.FromTokens Pull where
+    fromTokens = Saison.runRecordParser $ pure Pull
+        Saison.<.:> "node_id"
+        Saison.<.:> "title"
+
+type V  = Either String Aeson.Value
+type L = Either String [Aeson.Value]
+type X  = Either String [Pull]
+
+countSomeValues :: Either e [SomeValue] -> Int
+countSomeValues = either (const (-1)) length
 
 main :: IO ()
 main = defaultMain
@@ -23,8 +51,8 @@ main = defaultMain
   where
     value :: Benchmark
     value =
-        env (BS.readFile "inputs/laureate.json") $ \bs ->
-        env (LBS.readFile "inputs/laureate.json") $ \lbs ->
+        env (BS.readFile "inputs/pulls.json") $ \bs ->
+        env (LBS.readFile "inputs/pulls.json") $ \lbs ->
         bgroup "Value"
             [ bench "Aeson"       $ nf (Aeson.eitherDecodeStrict  :: BS.ByteString  -> V) bs
             , bench "Aeson'"      $ nf (Aeson.eitherDecodeStrict' :: BS.ByteString  -> V) bs
@@ -35,8 +63,8 @@ main = defaultMain
 
     count :: Benchmark
     count =
-        env (BS.readFile "inputs/laureate.json") $ \bs ->
-        env (LBS.readFile "inputs/laureate.json") $ \lbs ->
+        env (BS.readFile "inputs/pulls.json") $ \bs ->
+        env (LBS.readFile "inputs/pulls.json") $ \lbs ->
         bgroup "Count"
             [ bench "Aeson"       $ whnf (countSomeValues . Aeson.eitherDecodeStrict ) bs
             , bench "Aeson'"      $ whnf (countSomeValues . Aeson.eitherDecodeStrict') bs
@@ -47,8 +75,8 @@ main = defaultMain
 
     listvalue :: Benchmark
     listvalue =
-        env (BS.readFile "inputs/laureate.json") $ \bs ->
-        env (LBS.readFile "inputs/laureate.json") $ \lbs ->
+        env (BS.readFile "inputs/pulls.json") $ \bs ->
+        env (LBS.readFile "inputs/pulls.json") $ \lbs ->
         bgroup "ListValue"
             [ bench "Aeson"       $ nf (Aeson.eitherDecodeStrict  :: BS.ByteString  -> L) bs
             , bench "Aeson'"      $ nf (Aeson.eitherDecodeStrict' :: BS.ByteString  -> L) bs
@@ -59,8 +87,8 @@ main = defaultMain
 
     parse :: Benchmark
     parse =
-        env (BS.readFile "inputs/laureate.json") $ \bs ->
-        env (LBS.readFile "inputs/laureate.json") $ \lbs ->
+        env (BS.readFile "inputs/pulls.json") $ \bs ->
+        env (LBS.readFile "inputs/pulls.json") $ \lbs ->
         bgroup "Parse"
             [ bench "Aeson"       $ nf (Aeson.eitherDecodeStrict  :: BS.ByteString  -> X) bs
             , bench "Aeson'"      $ nf (Aeson.eitherDecodeStrict' :: BS.ByteString  -> X) bs

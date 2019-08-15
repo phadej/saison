@@ -18,5 +18,9 @@ bench-laureates :
 	cabal build bench-laureates
 	$$(cabal-plan list-bin bench-laureates) --csv bench-laureates.csv -o bench-laureates.html
 
+bench-pulls :
+	cabal build bench-pulls
+	$$(cabal-plan list-bin bench-pulls) --csv bench-pulls.csv -o bench-pulls.html
+
 haddock :
 	cabal haddock --haddock-hyperlink-sources
