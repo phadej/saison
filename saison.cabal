@@ -14,7 +14,7 @@ bug-reports:        https://github.com/phadej/saison/issues
 copyright:          2017-2019 Oleg Grenrus
 maintainer:         Oleg Grenrus <oleg.grenrus@iki.fi>
 author:             Oleg Grenrus <oleg.grenrus@iki.fi>
-license:            BSD-3-Clause
+license:            GPL-2.0-or-later
 license-file:       LICENSE
 extra-source-files: inputs/laureate.json inputs/pulls.json
 tested-with:
