@@ -1,18 +1,31 @@
 # https://easyperf.net/blog/2019/08/02/Perf-measurement-environment-on-Linux
 
-set -ex
+set -e
+
+echoto() {
+	echo "echo $1 > $2"
+	echo "$1" > "$2"
+}
 
 # 1. Disable turbo boost
-echo 0 > /sys/devices/system/cpu/intel_pstate/no_turbo
+
+if [ -f /sys/devices/system/cpu/intel_pstate/no_turbo ]; then
+  # Intel
+  echoto 0 /sys/devices/system/cpu/intel_pstate/no_turbo
+elif [ -f /sys/devices/system/cpu/cpufreq/boost ]; then
+  # AMD
+  echoto 1 /sys/devices/system/cpu/cpufreq/boost
+fi
 
 # 2. Disable Hyper-Threading
-echo 1 > /sys/devices/system/cpu/cpu2/online
-echo 1 > /sys/devices/system/cpu/cpu3/online
+for ONLINE in /sys/devices/system/cpu/cpu*/online; do
+	echoto 1 $ONLINE
+done
 
 # 3. Set scaling_governor to ‘performance’
-for i in 0 1 2 3
+for GOV in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
 do
-  echo powersave > /sys/devices/system/cpu/cpu$i/cpufreq/scaling_governor || true
+  echoto powersave $GOV || true
 done
 
 # 4. Set cpu affinity
