@@ -59,6 +59,7 @@ main = defaultMain
             , bench "Aeson Lazy"  $ nf (Aeson.eitherDecode        :: LBS.ByteString -> V) lbs
             , bench "Aeson' Lazy" $ nf (Aeson.eitherDecode'       :: LBS.ByteString -> V) lbs
             , bench "Saison"      $ nf (Saison.eitherDecodeStrict :: BS.ByteString  -> V) bs
+            , bench "Saison2"      $ nf (Saison.eitherDecodeStrict2 :: BS.ByteString  -> V) bs
             ]
 
     count :: Benchmark
@@ -71,6 +72,7 @@ main = defaultMain
             , bench "Aeson Lazy"  $ whnf (countSomeValues . Aeson.eitherDecode       ) lbs
             , bench "Aeson' Lazy" $ whnf (countSomeValues . Aeson.eitherDecode'      ) lbs
             , bench "Saison"      $ whnf (countSomeValues . Saison.eitherDecodeStrict) bs
+            , bench "Saison2"      $ whnf (countSomeValues . Saison.eitherDecodeStrict2) bs
             ]
 
     listvalue :: Benchmark
@@ -83,6 +85,7 @@ main = defaultMain
             , bench "Aeson Lazy"  $ nf (Aeson.eitherDecode        :: LBS.ByteString -> L) lbs
             , bench "Aeson' Lazy" $ nf (Aeson.eitherDecode'       :: LBS.ByteString -> L) lbs
             , bench "Saison"      $ nf (Saison.eitherDecodeStrict :: BS.ByteString  -> L) bs
+            , bench "Saison2"      $ nf (Saison.eitherDecodeStrict2 :: BS.ByteString  -> L) bs
             ]
 
     parse :: Benchmark
@@ -95,5 +98,6 @@ main = defaultMain
             , bench "Aeson Lazy"  $ nf (Aeson.eitherDecode        :: LBS.ByteString -> X) lbs
             , bench "Aeson' Lazy" $ nf (Aeson.eitherDecode'       :: LBS.ByteString -> X) lbs
             , bench "Saison"      $ nf (Saison.eitherDecodeStrict :: BS.ByteString  -> X) bs
+            , bench "Saison2"      $ nf (Saison.eitherDecodeStrict2 :: BS.ByteString  -> X) bs
             ]
 

@@ -45,6 +45,7 @@ module Saison (
     fromValue,
     -- * Parsing
     eitherDecodeStrict,
+    eitherDecodeStrict2,
     FromTokens (..),
     skipValue,
     -- ** Record
@@ -72,6 +73,8 @@ import Saison.Decoding.Tokens
 import Saison.Decoding.Value
 import Saison.Decoding.Record
 
+import qualified Saison.Decoding.Parser2 as X
+
 -------------------------------------------------------------------------------
 -- Decoding
 -------------------------------------------------------------------------------
@@ -79,6 +82,14 @@ import Saison.Decoding.Record
 -- | Parse a value from strict 'ByteString'.
 eitherDecodeStrict :: FromTokens a => ByteString -> Either String a
 eitherDecodeStrict bs = unResult (fromTokens (tokens bs)) Left $ \x bs' ->
+    let bs'' = skipSpace bs'
+    in if BS.null bs''
+       then Right x
+       else Left $ "Unexpected data after the JSON value: " ++ showBeginning bs''
+
+-- | Alternative 'tokens'.
+eitherDecodeStrict2 :: FromTokens a => ByteString -> Either String a
+eitherDecodeStrict2 bs = unResult (fromTokens (X.tokens bs)) Left $ \x bs' ->
     let bs'' = skipSpace bs'
     in if BS.null bs''
        then Right x
