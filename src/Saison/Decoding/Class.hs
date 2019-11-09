@@ -1,6 +1,9 @@
 {-# LANGUAGE BangPatterns        #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-module Saison.Decoding.Class where
+module Saison.Decoding.Class (
+    FromTokens (..),
+    withText,
+    ) where
 
 import Data.Aeson (Value)
 import Data.Text  (Text)
@@ -8,6 +11,7 @@ import Data.Void  (Void)
 
 import qualified Data.Text as T
 
+import Saison.Decoding.Record
 import Saison.Decoding.Result
 import Saison.Decoding.Tokens
 import Saison.Decoding.Value
@@ -30,6 +34,12 @@ class FromTokens a where
     fromTokensList (TkErr err) = failResult err
     fromTokensList _ = failResult "Expecting array, got ???"
 
+    fromTokensField :: Text -> RecordParser a
+    fromTokensField n = requiredField n fromTokens
+
+    fromTokensFieldList :: Text -> RecordParser [a]
+    fromTokensFieldList n = requiredField n fromTokensList
+
 -------------------------------------------------------------------------------
 -- Combinators
 -------------------------------------------------------------------------------
@@ -50,8 +60,15 @@ instance FromTokens Char where
 
     fromTokensList = withText "String" $ \t -> pureResult (T.unpack t)
 
+instance FromTokens a => FromTokens (Maybe a) where
+    fromTokens (TkLit LitNull k0) = Result $ \_ f -> f Nothing k0
+    fromTokens tokens             = Result $ \g f ->
+        unResult (fromTokens tokens) g $ \x tokens' -> f (Just x) tokens'
+    fromTokensField n     = optionalField n fromTokens
+
 instance FromTokens a => FromTokens [a] where
-    fromTokens = fromTokensList
+    fromTokens      = fromTokensList
+    fromTokensField = fromTokensFieldList
 
 -------------------------------------------------------------------------------
 -- aeson

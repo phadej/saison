@@ -55,22 +55,25 @@ module Saison (
     skippedField,
     (<.:>),
     (<.:?>),
+    -- ** Generic
+    genericFromTokensRecord,
     ) where
 
 import Prelude ()
 import Prelude.Compat
 
 import Data.ByteString (ByteString)
-import Data.Text (Text)
+import Data.Text       (Text)
 
 import qualified Data.ByteString as BS
 
 import Saison.Decoding.Class
+import Saison.Decoding.Generic
 import Saison.Decoding.Parser
+import Saison.Decoding.Record
 import Saison.Decoding.Result
 import Saison.Decoding.Tokens
 import Saison.Decoding.Value
-import Saison.Decoding.Record
 
 -------------------------------------------------------------------------------
 -- Decoding

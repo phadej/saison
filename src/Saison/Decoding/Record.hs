@@ -1,5 +1,6 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE GADTs #-}
+-- {-# OPTIONS_GHC -fplugin=DumpCore #-}
 module Saison.Decoding.Record (
     RecordParser,
     runRecordParser,
@@ -29,9 +30,11 @@ instance Functor RecordParser where
 
 instance Applicative RecordParser where
     pure = Pure
+
     f <*> Pure x   = Ap f (PureField x)
     f <*> Impure x = Ap f x
     f <*> Ap x y   = Ap ((.) <$> f <*> x) y
+    {-# INLINE (<*>) #-}
 
 runRecordParser :: RecordParser a -> Tokens k String -> Result String k a
 runRecordParser rp0 (TkRecordOpen rs) = go rp0 rs where
