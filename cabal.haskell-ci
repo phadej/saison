@@ -1,2 +1,4 @@
 branches: master
 submodules: True
+doctest: True
+doctest-filter-packages: base-compat

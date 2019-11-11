@@ -24,3 +24,7 @@ bench-pulls :
 
 haddock :
 	cabal haddock --haddock-hyperlink-sources
+
+doctest :
+	perl -i -e 'while (<ARGV>) { print unless /package-id base-compat-\d+(\.\d+)*/; }' .ghc.environment.*
+	doctest src src-confusing

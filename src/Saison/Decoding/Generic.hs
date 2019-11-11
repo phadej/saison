@@ -20,13 +20,29 @@ import Saison.Decoding.Record
 import Saison.Decoding.Result
 import Saison.Decoding.Tokens
 
+-- $setup
+-- >>> :set -XDeriveGeneric -XOverloadedStrings
+-- >>> import Saison
+
 -------------------------------------------------------------------------------
 -- Record
 -------------------------------------------------------------------------------
 
 -- | Generally decode record types using 'fromTokensField' for individual
 -- fields.
-
+--
+-- >>> data R = R { foo :: Int, bar :: Char, quu :: Maybe Bool } deriving (Show, Generic)
+-- >>> instance FromTokens R where fromTokens = genericFromTokensRecord id
+--
+-- >>> eitherDecodeStrict "{\"foo\":42,\"bar\":\"x\"}" :: Either String R
+-- Right (R {foo = 42, bar = 'x', quu = Nothing})
+--
+-- >>> eitherDecodeStrict "{\"bar\":\"x\",\"quu\":true,\"foo\":42}" :: Either String R
+-- Right (R {foo = 42, bar = 'x', quu = Just True})
+--
+-- >>> eitherDecodeStrict "{}" :: Either String R
+-- Left "Field \"bar\" required"
+--
 genericFromTokensRecord
     :: (Generic a, GFromTokensRecord (Rep a))
     => (String -> String)  -- ^ field renamer

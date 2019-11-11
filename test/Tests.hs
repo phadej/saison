@@ -6,6 +6,7 @@ module Main (main) where
 import Prelude ()
 import Prelude.Compat
 
+import Data.Int                     (Int64)
 import Data.Text                    (Text)
 import Data.Typeable                (Typeable, typeOf)
 import Math.NumberTheory.Logarithms (intLog2)
@@ -119,9 +120,13 @@ agreesWithAeson :: TestTree
 agreesWithAeson = testGroup "Agrees with aeson"
     [ agrees (P :: P Text)
     , agrees (P :: P [Text])
+    , agrees (P :: P Bool)
     , agrees (P :: P Char)
     , agrees (P :: P String) -- [Char]
     , agrees (P :: P [String])
+    -- numerals
+    , agrees (P :: P Int)
+    , agrees (P :: P Int64)
     -- slower
     , agrees (P :: P Aeson.Value)
     ]
