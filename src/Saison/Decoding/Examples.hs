@@ -1,4 +1,8 @@
+{-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE OverloadedStrings #-}
+-- {-# OPTIONS_GHC -fplugin=DumpCore #-}
+-- {-# OPTIONS_GHC -funfolding-use-threshold=200 #-}
+
 -- | Various examples of using @saison@.
 module Saison.Decoding.Examples (
     -- * SomeValue
@@ -13,7 +17,9 @@ import Prelude ()
 import Prelude.Compat
 
 import Control.DeepSeq (NFData (..))
+import Data.Char       (toLower)
 import Data.Text       (Text)
+import GHC.Generics    (Generic)
 
 import qualified Data.Aeson as Aeson
 
@@ -105,22 +111,18 @@ data Laureate = Laureate
     , lBornCity        :: !(Maybe Text)
     , lBornCountry     :: !(Maybe Text)
     , lBornCountryCode :: !(Maybe Text)
-    , lDead            :: !Text -- change to Day
-    , lDeadCity        :: !(Maybe Text)
-    , lDeadCountry     :: !(Maybe Text)
-    , lDeadCountryCode :: !(Maybe Text)
-    , lFirstName       :: !(Maybe Text)
+    , lDied            :: !Text -- change to Day
+    , lDiedCity        :: !(Maybe Text)
+    , lDiedCountry     :: !(Maybe Text)
+    , lDiedCountryCode :: !(Maybe Text)
+    , lFirstname       :: !(Maybe Text)
     , lSurname         :: !(Maybe Text)
     , lId              :: !Text
     , lGender          :: !Text
     }
-  deriving (Eq, Show)
+  deriving (Eq, Show, Generic)
 
-instance NFData Laureate where
-    rnf (Laureate a b c d e f g h i j k l) =
-        rnf a `seq` rnf b `seq` rnf c `seq` rnf d `seq`
-        rnf e `seq` rnf f `seq` rnf g `seq` rnf h `seq`
-        rnf i `seq` rnf j `seq` rnf k `seq` rnf l
+instance NFData Laureate
 
 instance Aeson.FromJSON Laureate where
     parseJSON = Aeson.withObject "Laureate" $ \obj -> Laureate
@@ -138,6 +140,10 @@ instance Aeson.FromJSON Laureate where
         <*> obj Aeson..:  "gender"
 
 instance FromTokens Laureate where
+    fromTokens = genericFromTokensRecord renamer where
+        renamer (_:x:xs) = toLower x : xs
+        renamer xs       = xs
+{-
     fromTokens = runRecordParser $ pure Laureate
         <.:>  "born"
         <.:?> "bornCity"
@@ -151,3 +157,4 @@ instance FromTokens Laureate where
         <.:?> "surname"
         <.:>  "id"
         <.:>  "gender"
+-}
